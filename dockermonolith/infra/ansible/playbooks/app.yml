@@ -1,0 +1,17 @@
+---
+- hosts: all
+  become: true
+  tasks:
+    - name: Create container
+      docker_container:
+        name: "app"
+        image: "zolo20/otus-reddit:1.0"
+        state: started
+        ports:
+          - "9292:9292"
+
+    - name: Check list of runned containers
+      command: docker ps
+      register: cont_list
+
+    - debug: msg="{{ cont_list.stdout }}"

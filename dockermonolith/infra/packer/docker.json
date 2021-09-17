@@ -1,0 +1,23 @@
+{
+  "builders": [
+    {
+      "type": "yandex",
+      "service_account_key_file": "{{ user `key_path` }}",
+      "folder_id": "{{ user `folder_id` }}",
+      "source_image_family": "{{ user `image_id` }}",
+      "image_name": "docker-{{timestamp}}",
+      "image_family": "docker",
+      "ssh_username": "ubuntu",
+      "platform_id": "standard-v1",
+      "zone": "ru-central1-a",
+      "subnet_id": "e9bhkmfcc7minov5c7be",
+      "use_ipv4_nat": true
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "ansible",
+      "playbook_file": "ansible/playbooks/docker_ubuntu1804.yml"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+REPOSITORY               TAG         IMAGE ID       CREATED              SIZE
+zolo20/ubuntu-tmp-file   latest      56eb79a60594   About a minute ago   56.6MB
+nginx                    latest      9fa3786cd6ac   45 hours ago         126MB
+ubuntu                   18.04       d7efed8348f7   11 days ago          56.6MB
+hello-world              latest      bc11b176a293   2 months ago         9.14kB
+
+На основе образа(image) создаются контейнеры, в котором описаны конфигурации системы и приложений, который доступен только для чтения
+Контейнер запускается(создается) на основе экземпляра образа(image) с верхнеуровневым слоем записи, который содержит в себе инофрмацию по: network, volume, processes...
