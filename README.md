@@ -109,3 +109,66 @@ terraform apply
 ```bash
 ansible-playbook playbooks/run_app_in_docker.yml
 ```
+
+## Задание № 13
+
+### Что сделано
+
+1) Скопировал файлы приложения в папку src из скаченного [архива](https://github.com/express42/reddit/archive/microservices.zip)
+
+2) Подключился к хосту с docker "docker-host" в Yandex Cloud:
+
+```bash
+docker-machine create \
+  --driver generic \
+  --generic-ip-address=178.154.221.250 \
+  --generic-ssh-user yc-user \
+  --generic-ssh-key ~/.ssh/id_rsa \
+  docker-host
+
+eval $(docker-machine env docker-host) // инициализация docker на удаленном хосте
+```
+3) Собираем образы и качаем образ MongoDB
+
+```bash
+docker build -t zolo20/post:1.0 ./post-py
+docker build -t zolo20/comment:1.0 ./comment
+docker build -t zolo20/ui:1.0 ./ui
+docker pull mongo:latest
+```
+
+4) Создал bridge-сеть для контейнеров reddit
+
+```bash
+# создаем сеть
+docker network create reddit
+
+# запускаем контейнеры с алиасами
+docker run -d --network=reddit --network-alias=post_db --network-alias=comment_db mongo:latest
+docker run -d --network=reddit --network-alias=post zolo20/post:1.0
+docker run -d --network=reddit --network-alias=comment zolo20/comment:1.0
+docker run -d --network=reddit -p 9292:9292 zolo20/ui:1.0
+```
+### Первое задание со *
+
+- Запустите контейнеры с другими сетевыми алиасами
+- Адреса для взаимодействия контейнеров задаются через ENV-переменные внутри Dockerfile'ов
+- При запуске контейнеров (docker run) задайте им переменные окружения соответствующие новым сетевым алиасам, не пересоздавая образ
+- Проверьте работоспособность сервиса
+
+При изменении сетевых алиасов мы должны переопределить и ENV-переменные Dockerfile с помощью ключа --env,
+поскольку они отвечают за сетевое взаимодействие контейнеров между собой.
+
+```bash
+docker run -d --network=reddit --network-alias=new_post_db --network-alias=new_comment_db mongo:latest
+docker run -d --network=reddit --network-alias=new_post --env POST_DATABASE_HOST=new_post_db zolo20/post:1.0
+docker run -d --network=reddit --network-alias=new_comment --env COMMENT_DATABASE_HOST=new_comment_db  zolo20/comment:1.0
+docker run -d --network=reddit -p 9292:9292 --env POST_SERVICE_HOST=new_post --env COMMENT_SERVICE_HOST=new_comment zolo20/ui:1.0
+```
+### Второе задание со *
+
+- Собрать образ на основе Alpine Linux
+- Уменьшить размер образа
+
+Собрал образ [Dockerfile.1](src/ui/Dockerfile.1) для сервиса UI. На основе Alpine Linux с оптимизацией размера образа
+за счет опции установки пакетов --no-cache и удаления кэша rm -rf /var/cache/apk/* (если что-то осталось).
