@@ -19,9 +19,9 @@ yc compute instance create \
 ```bash
 docker-machine create \
   --driver generic \
-  --generic-ip-address=178.154.221.250 \
+  --generic-ip-address=178.154.204.50 \
   --generic-ssh-user yc-user \
-  --generic-ssh-key ~/.ssh/id_rsa \
+  --generic-ssh-key ~/.ssh/appuser \
   docker-host
 
 eval $(docker-machine env docker-host) // инициализация docker на удаленном хосте
@@ -172,3 +172,96 @@ docker run -d --network=reddit -p 9292:9292 --env POST_SERVICE_HOST=new_post --e
 
 Собрал образ [Dockerfile.1](src/ui/Dockerfile.1) для сервиса UI. На основе Alpine Linux с оптимизацией размера образа
 за счет опции установки пакетов --no-cache и удаления кэша rm -rf /var/cache/apk/* (если что-то осталось).
+
+## Задание № 14
+### Что сделано
+
+Задание: Повторите запуски контейнеров с использованием драйверов
+none и host и посмотрите, как меняется список namespace-ов.
+
+```bash
+# Подключился к docker-хосту
+docker-machine ssh docker-host
+
+# выполнить команду
+sudo ln -s /var/run/docker/netns /var/run/netns
+
+# запустил контейнер в сети none
+sudo docker run -ti --rm --network none joffotron/docker-net-tools -c ifconfig
+# результат
+lo        Link encap:Local Loopback
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+
+# Проверил network namespaces
+sudo ip netns
+# namespaces в сети none
+Error: Peer netns reference is invalid.
+Error: Peer netns reference is invalid.
+netns
+
+# запустил контейнер в сети "host"
+sudo docker run -ti --rm --network host joffotron/docker-net-tools -c ifconfig
+# Результат
+docker0   Link encap:Ethernet  HWaddr 02:42:0C:40:98:58
+          inet addr:172.17.0.1  Bcast:172.17.255.255  Mask:255.255.0.0
+          UP BROADCAST MULTICAST  MTU:1500  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+
+eth0      Link encap:Ethernet  HWaddr D0:0D:1D:6F:B0:D7
+          inet addr:10.128.0.15  Bcast:10.128.0.255  Mask:255.255.255.0
+          inet6 addr: fe80::d20d:1dff:fe6f:b0d7%32509/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:46183 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:38868 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000
+          RX bytes:121852653 (116.2 MiB)  TX bytes:3363571 (3.2 MiB)
+
+lo        Link encap:Local Loopback
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1%32509/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:290 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:290 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000
+          RX bytes:26494 (25.8 KiB)  TX bytes:26494 (25.8 KiB)
+
+# Проверил network namespaces:
+sudo ip netns
+# в сети host net-namespace
+Error: Peer netns reference is invalid.
+default
+Error: Peer netns reference is invalid.
+netns
+```
+
+Задание:
+1) Изменить docker-compose под кейс с множеством сетей, сетевых алиасов
+2) Параметризуйте с помощью переменных окружений
+Выполнение этих пунктов находится в файле [docker-compose.yml](src/docker-compose.yml)
+3) Параметризованные параметры запишите в отдельный файл с расширением [.env](src/.env.example)
+4) Без использования команд source и export
+docker-compose должен подхватить переменные из этого файла.
+
+Это выполняется с помощью тега env_file:
+```bash
+services:
+  post_db:
+    env_file: .env
+    ...
+```
+Задание:
+Узнайте как образуется базовое имя проекта. Можно
+ли его задать? Если можно, то как?
+
+Изменить имя можно с помощью параметра --project-name при запуске с помощью docker-compose
+```bash
+docker-compose --project-name app up -d
+```
